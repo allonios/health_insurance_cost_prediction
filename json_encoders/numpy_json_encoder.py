@@ -8,4 +8,10 @@ class NumpyArrayEncoder(JSONEncoder):
             return float(obj)
         if isinstance(obj, np.int):
             return int(obj)
+        if isinstance(obj, range):
+            return list(obj)
+        if np.isnan(obj):
+            return 0
+        
+        
         return JSONEncoder.default(self, obj)
