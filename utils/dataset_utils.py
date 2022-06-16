@@ -42,8 +42,6 @@ def preprocess_dataset(
         lambda sex: 1 if sex == "yes" else 0
     )
 
-    breakpoint()
-
     return dataset
 
 

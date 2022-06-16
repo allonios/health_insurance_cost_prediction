@@ -1,10 +1,10 @@
 import json
 from typing import Dict
 
-import numpy as np
 import pandas as pd
+from IPython.display import display
 from matplotlib import pyplot as plt
-from json_encoders.numpy_json_encoder import NumpyArrayEncoder
+from sklearn.base import BaseEstimator
 from sklearn.feature_selection import RFE
 from sklearn.feature_selection import SelectFromModel
 from sklearn.feature_selection import SelectPercentile
@@ -14,10 +14,14 @@ from sklearn.model_selection import learning_curve as lc
 from sklearn.model_selection import validation_curve as vc
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import PolynomialFeatures
-from utils.plot_utils import  plot_grid_search_results, plot_learning_curve, plot_validation_curve
-from sklearn.base import BaseEstimator
-from IPython.display import display
-import pandas as pd
+
+from json_encoders.numpy_json_encoder import NumpyArrayEncoder
+from utils.plot_utils import (
+    plot_grid_search_results,
+    plot_learning_curve,
+    plot_validation_curve
+)
+
 
 class ModelSummary:
     def __init__(
@@ -71,12 +75,13 @@ class ModelSummary:
             json.dump(content, file, indent=4, cls=NumpyArrayEncoder)
 
     def display(self):
+        print(f"\033[1;32m {self.name} \n")
         df = pd.DataFrame(data={
             " ": ["Train", "Test"],
             "MSE": [self.mean_squared_error["train"], self.mean_squared_error["test"]],
             "R2 Score": [self.r2_score["train"], self.r2_score["test"]]
         })
-        print("Model Result:")
+        print(f"\033[1;37m Model Result:\n")
         display(df)
         # print("MSE:")
         # print(self.mean_squared_error)
