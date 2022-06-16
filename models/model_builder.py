@@ -4,7 +4,7 @@ from typing import Dict
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
-from sklearn.base import BaseEstimator
+from json_encoders.numpy_json_encoder import NumpyArrayEncoder
 from sklearn.feature_selection import RFE
 from sklearn.feature_selection import SelectFromModel
 from sklearn.feature_selection import SelectPercentile
@@ -14,7 +14,8 @@ from sklearn.model_selection import learning_curve as lc
 from sklearn.model_selection import validation_curve as vc
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import PolynomialFeatures
-
+from utils.plot_utils import plot_grid_search,plot_learning_curve,plot_validation_curve
+from sklearn.base import BaseEstimator
 
 class ModelSummary:
     def __init__(
@@ -50,94 +51,74 @@ class ModelSummary:
         obj = self.__dict__.copy()
         obj.pop("name")
         obj.pop("model")
-        print(obj.keys())
-        if obj["validation_curve_data"]:
-            obj["validation_curve_data"]["param_range"] = (
-                obj["validation_curve_data"]["param_range"].tolist()
-            )
-            obj["validation_curve_data"]["val_score"] = (
-                obj["validation_curve_data"]["val_score"].tolist()
-            )
-            obj["validation_curve_data"]["train_score"] = (
-                obj["validation_curve_data"]["train_score"].tolist()
-            )
-        if obj["learning_curve_data"]:
-            obj["learning_curve_data"]["train_lc"] = (
-                obj["learning_curve_data"]["train_lc"].tolist()
-            )
-            obj["learning_curve_data"]["val_lc"] = (
-                obj["learning_curve_data"]["val_lc"].tolist()
-            )
-            obj["learning_curve_data"]["N"] = (
-                obj["learning_curve_data"]["N"].tolist()
-            )
+        # if obj["validation_curve_data"]:
+        #     obj["validation_curve_data"]["param_range"] = obj["validation_curve_data"]["param_range"].tolist()
+        #     obj["validation_curve_data"]["val_score"] = obj["validation_curve_data"]["val_score"].tolist()
+        #     obj["validation_curve_data"]["train_score"] = obj["validation_curve_data"]["train_score"].tolist()
+            
+        # if obj["learning_curve_data"]:
+        #     obj["learning_curve_data"]["train_lc"] = obj["learning_curve_data"]["train_lc"].tolist()
+        #     obj["learning_curve_data"]["val_lc"] = obj["learning_curve_data"]["val_lc"].tolist()
+        #     obj["learning_curve_data"]["N"] = obj["learning_curve_data"]["N"].tolist()
+        
         with open(path, "r") as file:
             content = json.load(file)
 
         with open(path, "w") as file:
             content[self.name] = obj
-            json.dump(content, file, indent=4)
+            json.dump(content, file, indent=4, cls=NumpyArrayEncoder)
 
     def display(self):
         print("MSE:")
         print(self.mean_squared_error)
         print("R2:")
         print(self.r2_score)
+
         if self.grid_search_summary:
             print("Grid Search:")
             print(self.grid_search_summary)
+
+        curves = [self.validation_curve_data,
+                  self.grid_search_summary, self.learning_curve_data]
+
+        curves = list(
+            filter(
+                lambda curve: curve, curves
+            )
+        )
+        
+        # f, axes = plt.subplots(len(curves), 1, squeeze=False)
+        # f.set_figheight(4 * len(curves))
+        # f.set_figwidth(6)
+        
+        current_ax_index = 0
         if self.validation_curve_data:
-            plt.plot(
+            plot_validation_curve(
+                plt,
                 self.validation_curve_data["param_range"],
-                np.median(self.validation_curve_data["train_score"], 1),
-                color="blue",
-                alpha=0.3,
-                linestyle="dashed"
+                self.validation_curve_data["train_score"],
+                self.validation_curve_data["val_score"],
             )
-            plt.plot(
-                self.validation_curve_data["param_range"],
-                np.median(self.validation_curve_data["val_score"], 1),
-                color="red",
-                alpha=0.3,
-                linestyle="dashed"
-            )
-            plt.legend(loc="best")
-            plt.xlabel("param")
-            plt.ylabel("score")
-
+            current_ax_index += 1
+            plt.show()
+        
         if self.learning_curve_data:
-            plt.plot(
+            plot_learning_curve(
+                plt,
                 self.learning_curve_data["N"],
-                np.mean(self.learning_curve_data["train_lc"], 1),
-                color="blue",
-                label="training score"
+                self.learning_curve_data["train_lc"],
+                self.learning_curve_data["val_lc"],
             )
-            plt.plot(
-                self.learning_curve_data["N"],
-                np.mean(self.learning_curve_data["val_lc"], 1),
-                color="red",
-                label="validation score"
-            )
-            plt.hlines(
-                np.mean([
-                    self.learning_curve_data["train_lc"][-1],
-                    self.learning_curve_data["val_lc"][-1]
-                ]),
-                self.learning_curve_data["N"][0],
-                self.learning_curve_data["N"][-1],
-                color="gray",
-                linestyle="dashed"
-            )
-
-            plt.set_ylim(0, 1)
-            plt.set_xlim(
-                self.learning_curve_data["N"][0],
-                self.learning_curve_data["N"][-1]
-            )
-            plt.set_xlabel("training size")
-            plt.set_ylabel("score")
-            plt.set_title("param", size=14)
-            plt.legend(loc="best")
+            current_ax_index += 1
+            plt.show()
+            
+        # if self.learning_curve_data:
+        #     plot_grid_search(
+        #         axs[current_ax_index],
+        #         self.grid_search_summary["cv_results"],
+                
+        #     )
+        #     current_ax_index += 1
 
 
 def generate_model_summary(
@@ -202,6 +183,7 @@ def generate_model_summary(
         y_pred = grid.predict(X_test)
         grid_search_summary = {
             "best_params": grid.best_params_,
+            "cv_results": grid.cv_results_
         }
         model = grid.best_estimator_
 
@@ -225,7 +207,6 @@ def generate_model_summary(
                 "val_score": val_score,
                 "param_range": validation_curve.get("param_range", False)
             }
-            print(validation_curve_data)
         else:
             raise ValueError(
                 "validation_curve must contain param_name and param_range")
