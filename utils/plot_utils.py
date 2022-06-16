@@ -51,23 +51,44 @@ def plot_learning_curve(plt, N, train_lc, val_lc):
     plt.title("Learning Curve")
     plt.legend(loc="best")
 
-def plot_grid_search(plt, cv_results, grid_param_1, grid_param_2, name_param_1, name_param_2):
-    # Get Test Scores Mean and std for each grid search
-    scores_mean = cv_results['mean_test_score']
-    scores_mean = np.array(scores_mean).reshape(len(grid_param_2),len(grid_param_1))
+def plot_grid_search_results(plt, cv_results, best_params, param_grid):
+    """
+    Params: 
+        grid: A trained GridSearchCV object.
+    """
+    ## Results from grid search
+    results = cv_results
+    means_test = results['mean_test_score']
+    stds_test = results['std_test_score']
+    means_train = results['mean_train_score']
+    stds_train = results['std_train_score']
 
-    scores_sd = cv_results['std_test_score']
-    scores_sd = np.array(scores_sd).reshape(len(grid_param_2),len(grid_param_1))
+    ## Getting indexes of values per hyper-parameter
+    masks=[]
+    masks_names= list(best_params.keys())
+    for p_k, p_v in best_params.items():
+        masks.append(list(results['param_'+p_k].data==p_v))
 
-    # Plot Grid search scores
-    _, ax = plt.subplots(1,1)
+    params=param_grid
 
-    # Param1 is the X-axis, Param 2 is represented as a different curve (color line)
-    for idx, val in enumerate(grid_param_2):
-        ax.plot(grid_param_1, scores_mean[idx,:], '-o', label= name_param_2 + ': ' + str(val))
+    ## Ploting results
+    fig, ax = plt.subplots(1,len(params),sharex='none', sharey='all',figsize=(20,5))
+    fig.suptitle('Score per parameter')
+    fig.text(0.04, 0.5, 'MEAN SCORE', va='center', rotation='vertical')
+    pram_preformace_in_best = {}
+    for i, p in enumerate(masks_names):
+        m = np.stack(masks[:i] + masks[i+1:])
+        pram_preformace_in_best
+        best_parms_mask = m.all(axis=0)
+        best_index = np.where(best_parms_mask)[0]
+        x = np.array(params[p])
+        y_1 = np.array(means_test[best_index])
+        e_1 = np.array(stds_test[best_index])
+        y_2 = np.array(means_train[best_index])
+        e_2 = np.array(stds_train[best_index])
+        ax[i].errorbar(x, y_1, e_1, linestyle='--', marker='o', label='test')
+        ax[i].errorbar(x, y_2, e_2, linestyle='-', marker='^',label='train' )
+        ax[i].set_xlabel(p.upper())
 
-    ax.title("Grid Search Scores", fontsize=20, fontweight='bold')
-    ax.xlabel(name_param_1, fontsize=16)
-    ax.ylabel('CV Average Score', fontsize=16)
-    ax.legend(loc="best", fontsize=15)
-    ax.grid('on')
+    plt.legend()
+    plt.show()

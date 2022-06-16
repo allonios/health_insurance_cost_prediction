@@ -14,7 +14,7 @@ from sklearn.model_selection import learning_curve as lc
 from sklearn.model_selection import validation_curve as vc
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import PolynomialFeatures
-from utils.plot_utils import plot_grid_search, plot_learning_curve, plot_validation_curve
+from utils.plot_utils import  plot_grid_search_results, plot_learning_curve, plot_validation_curve
 from sklearn.base import BaseEstimator
 
 
@@ -88,10 +88,6 @@ class ModelSummary:
             )
         )
 
-        # f, axes = plt.subplots(len(curves), 1, squeeze=False)
-        # f.set_figheight(4 * len(curves))
-        # f.set_figwidth(6)
-
         current_ax_index = 0
         if self.validation_curve_data:
             plot_validation_curve(
@@ -113,14 +109,15 @@ class ModelSummary:
             current_ax_index += 1
             plt.show()
 
-        # if self.learning_curve_data:
-        #     plot_grid_search(
-        #         axs[current_ax_index],
-        #         self.grid_search_summary["cv_results"],
-
-        #     )
-        #     current_ax_index += 1
-
+        if self.grid_search_summary:
+            plot_grid_search_results(
+                plt,
+                self.grid_search_summary["cv_results"],
+                self.grid_search_summary["best_params"],
+                self.grid_search_summary["param_grid"],
+            )
+            current_ax_index += 1
+            plt.show()
 
 def generate_model_summary(
     name: str,
@@ -179,7 +176,7 @@ def generate_model_summary(
     grid_search_summary = None
     if isinstance(grid_search, dict):
         if(grid_search["param_grid"]):
-            grid = GridSearchCV(pipeline, cv=2, **grid_search)
+            grid = GridSearchCV(pipeline, cv=2, **grid_search, return_train_score=True)
         else:
             raise ValueError("grid_search must contain param_grid")
 
@@ -190,7 +187,8 @@ def generate_model_summary(
 
         grid_search_summary = {
             "best_params": grid.best_params_,
-            "cv_results": grid.cv_results_
+            "cv_results": grid.cv_results_,
+            "param_grid": grid.param_grid
         }
         model = grid.best_estimator_
 
