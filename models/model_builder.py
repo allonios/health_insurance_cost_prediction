@@ -14,8 +14,9 @@ from sklearn.model_selection import learning_curve as lc
 from sklearn.model_selection import validation_curve as vc
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import PolynomialFeatures
-from utils.plot_utils import plot_grid_search,plot_learning_curve,plot_validation_curve
+from utils.plot_utils import plot_grid_search, plot_learning_curve, plot_validation_curve
 from sklearn.base import BaseEstimator
+
 
 class ModelSummary:
     def __init__(
@@ -55,12 +56,12 @@ class ModelSummary:
         #     obj["validation_curve_data"]["param_range"] = obj["validation_curve_data"]["param_range"].tolist()
         #     obj["validation_curve_data"]["val_score"] = obj["validation_curve_data"]["val_score"].tolist()
         #     obj["validation_curve_data"]["train_score"] = obj["validation_curve_data"]["train_score"].tolist()
-            
+
         # if obj["learning_curve_data"]:
         #     obj["learning_curve_data"]["train_lc"] = obj["learning_curve_data"]["train_lc"].tolist()
         #     obj["learning_curve_data"]["val_lc"] = obj["learning_curve_data"]["val_lc"].tolist()
         #     obj["learning_curve_data"]["N"] = obj["learning_curve_data"]["N"].tolist()
-        
+
         with open(path, "r") as file:
             content = json.load(file)
 
@@ -86,11 +87,11 @@ class ModelSummary:
                 lambda curve: curve, curves
             )
         )
-        
+
         # f, axes = plt.subplots(len(curves), 1, squeeze=False)
         # f.set_figheight(4 * len(curves))
         # f.set_figwidth(6)
-        
+
         current_ax_index = 0
         if self.validation_curve_data:
             plot_validation_curve(
@@ -101,7 +102,7 @@ class ModelSummary:
             )
             current_ax_index += 1
             plt.show()
-        
+
         if self.learning_curve_data:
             plot_learning_curve(
                 plt,
@@ -111,12 +112,12 @@ class ModelSummary:
             )
             current_ax_index += 1
             plt.show()
-            
+
         # if self.learning_curve_data:
         #     plot_grid_search(
         #         axs[current_ax_index],
         #         self.grid_search_summary["cv_results"],
-                
+
         #     )
         #     current_ax_index += 1
 
@@ -180,7 +181,9 @@ def generate_model_summary(
 
     if grid:
         grid.fit(X_train, y_train)
-        y_pred = grid.predict(X_test)
+        y_pred_test = grid.predict(X_test)
+        y_pred_train = grid.predict(X_train)
+
         grid_search_summary = {
             "best_params": grid.best_params_,
             "cv_results": grid.cv_results_
@@ -189,7 +192,9 @@ def generate_model_summary(
 
     else:
         pipeline.fit(X_train, y_train)
-        y_pred = pipeline.predict(X_test)
+        y_pred_test = pipeline.predict(X_test)
+        y_pred_train = pipeline.predict(X_train)
+
         model = pipeline
 
     validation_curve_data = None
@@ -218,10 +223,14 @@ def generate_model_summary(
 
     return ModelSummary(
         name=name,
-        mean_squared_error=float(
-            mean_squared_error(y_true=y_test, y_pred=y_pred)
-        ),
-        r2_score=float(r2_score(y_true=y_test, y_pred=y_pred)),
+        mean_squared_error={
+            "test":   float(mean_squared_error(y_true=y_test, y_pred=y_pred_test)),
+            "train": float(mean_squared_error(y_true=y_train, y_pred=y_pred_train)),
+        },
+        r2_score={
+            "test":   float(r2_score(y_true=y_test, y_pred=y_pred_test)),
+            "train": float(r2_score(y_true=y_train, y_pred=y_pred_train)),
+        },
         grid_search_summary=grid_search_summary,
         validation_curve_data=validation_curve_data,
         learning_curve_data=learning_curve_data,
