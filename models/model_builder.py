@@ -16,7 +16,8 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import PolynomialFeatures
 from utils.plot_utils import  plot_grid_search_results, plot_learning_curve, plot_validation_curve
 from sklearn.base import BaseEstimator
-
+from IPython.display import display
+import pandas as pd
 
 class ModelSummary:
     def __init__(
@@ -70,15 +71,25 @@ class ModelSummary:
             json.dump(content, file, indent=4, cls=NumpyArrayEncoder)
 
     def display(self):
-        print("MSE:")
-        print(self.mean_squared_error)
-        print("R2:")
-        print(self.r2_score)
-
+        df = pd.DataFrame(data={
+            " ": ["Train", "Test"],
+            "MSE": [self.mean_squared_error["train"], self.mean_squared_error["test"]],
+            "R2 Score": [self.r2_score["train"], self.r2_score["test"]]
+        })
+        print("Model Result:")
+        display(df)
+        # print("MSE:")
+        # print(self.mean_squared_error)
+        # print("R2:")
+        # print(self.r2_score)
         if self.grid_search_summary:
-            print("Grid Search:")
-            print(self.grid_search_summary)
-
+            print("Grid Search Best Params:")
+            best_params = self.grid_search_summary["best_params"]
+            best_params_df = pd.DataFrame({"param": list(best_params), "values": list(map(lambda x: best_params[x],best_params))})
+            display(best_params_df)
+            # print("Grid Search:")
+            # print(self.grid_search_summary)
+        
         curves = [self.validation_curve_data,
                   self.grid_search_summary, self.learning_curve_data]
 
@@ -212,7 +223,7 @@ def generate_model_summary(
             validation_curve_data = {
                 "train_score": val_train_score,
                 "val_score": val_score,
-                "param_range": validation_curve.get("param_range", False)
+                "param_range": validation_curve.get("param_range", False),
             }
         else:
             raise ValueError(
