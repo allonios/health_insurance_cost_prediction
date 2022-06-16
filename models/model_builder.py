@@ -136,7 +136,8 @@ def generate_model_summary(
 
     validation_curve: Dict = None,
     grid_search: Dict = None,
-    learning_curve: Dict = None
+    learning_curve: Dict = None,
+    print_params: bool = False
 
 ):
     pipline_elements = []
@@ -170,6 +171,9 @@ def generate_model_summary(
     pipline_elements.append(model)
 
     pipeline = make_pipeline(*pipline_elements)
+
+    if print_params:
+        print(pipeline.get_params())
 
     grid = None
     grid_search_summary = None
@@ -224,8 +228,12 @@ def generate_model_summary(
     return ModelSummary(
         name=name,
         mean_squared_error={
-            "test":   float(mean_squared_error(y_true=y_test, y_pred=y_pred_test)),
-            "train": float(mean_squared_error(y_true=y_train, y_pred=y_pred_train)),
+            "test":   float(
+                mean_squared_error(y_true=y_test, y_pred=y_pred_test)
+            ),
+            "train": float(
+                mean_squared_error(y_true=y_train, y_pred=y_pred_train)
+            ),
         },
         r2_score={
             "test":   float(r2_score(y_true=y_test, y_pred=y_pred_test)),
